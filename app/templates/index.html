@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}LabGemma — AI-assisted programming lab with personalized learning{% endblock %}
+{% block main_class %}page page--flush{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero__bg" aria-hidden="true"></div>
+  <div class="hero__inner">
+    <div class="hero__copy">
+      <p class="hero__studio">A Concern of <strong>Semicolons</strong></p>
+      <p class="brand-mark">Lab<em>Gemma</em></p>
+      <h1>Real labs. Fair partial marks.</h1>
+      <p class="hero__tagline">AI-assisted programming lab with personalized learning</p>
+      <p class="hero__lede">
+        Teachers build labs with Gemma 4. Students code, the engine judges,
+        and Gemma gives fair partial credit when tests fail.
+      </p>
+      <div class="cta-row">
+        {% if user and user.role == 'teacher' %}
+          <a class="btn btn-primary" href="/teacher/">Open sessions</a>
+          <a class="btn btn-ghost" href="/motivation">Why LabGemma</a>
+        {% elif user %}
+          <a class="btn btn-primary" href="/lab/">Enter labs</a>
+          <a class="btn btn-ghost" href="/motivation">Why LabGemma</a>
+        {% else %}
+          <a class="btn btn-primary" href="/login">Login</a>
+          <a class="btn btn-ghost" href="/motivation">Why LabGemma</a>
+        {% endif %}
+      </div>
+      {% if mock_gemma %}
+      <p class="hero__note">Demo mode uses mock Gemma. Add your API key in <code class="mono">.env</code> for live grading.</p>
+      {% endif %}
+    </div>
+
+    <div class="hero__stage" aria-hidden="true">
+      <div class="lab-flow">
+        <div class="lab-flow__bar">
+          <span class="lab-flow__dot"></span>
+          <span class="lab-flow__dot"></span>
+          <span class="lab-flow__dot"></span>
+          <span class="lab-flow__title">LabGemma pipeline</span>
+        </div>
+
+        <div class="lab-flow__step lab-flow__step--code">
+          <span class="lab-flow__label">Student code</span>
+          <pre class="lab-flow__code"><span class="lab-flow__type">n = int(input())
+print("Yes" if str(n)==str(n)[::-1] else "No")</span><span class="lab-flow__caret"></span></pre>
+        </div>
+
+        <div class="lab-flow__step lab-flow__step--engine">
+          <div class="lab-flow__row">
+            <span class="lab-flow__label">Engine judge</span>
+            <span class="lab-flow__badge lab-flow__badge--run">Running</span>
+            <span class="lab-flow__badge lab-flow__badge--wa">WA · 2/4</span>
+          </div>
+          <div class="lab-flow__tests">
+            <span class="lab-flow__t lab-flow__t--pass"></span>
+            <span class="lab-flow__t lab-flow__t--pass"></span>
+            <span class="lab-flow__t lab-flow__t--fail"></span>
+            <span class="lab-flow__t lab-flow__t--fail"></span>
+          </div>
+        </div>
+
+        <div class="lab-flow__step lab-flow__step--gemma">
+          <div class="lab-flow__row">
+            <span class="lab-flow__label">Gemma partial mark</span>
+            <span class="lab-flow__score"><em>7.5</em>/10</span>
+          </div>
+          <div class="lab-flow__bartrack"><span class="lab-flow__barfill"></span></div>
+          <p class="lab-flow__note">Rubric scored · consistency checked</p>
+        </div>
+
+        <div class="lab-flow__step lab-flow__step--learn">
+          <span class="lab-flow__label">Personalized practice</span>
+          <p class="lab-flow__note">3 problems ready from your weak topics</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block footer %}
+<footer class="site-footer">
+  Developed by <a href="https://abdnoman.com" target="_blank" rel="noopener noreferrer">Abdullah Al Noman</a>
+</footer>
+{% endblock %}

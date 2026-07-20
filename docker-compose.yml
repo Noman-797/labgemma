@@ -1,0 +1,20 @@
+services:
+  labgemma:
+    build: .
+    image: labgemma:latest
+    container_name: labgemma
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      # Persist SQLite on the named volume (overrides local ./ path)
+      DATABASE_URL: sqlite:////data/labgemma.db
+      SEED_DEMO: "${SEED_DEMO:-1}"
+      PORT: "8000"
+    volumes:
+      - labgemma_data:/data
+    restart: unless-stopped
+
+volumes:
+  labgemma_data:

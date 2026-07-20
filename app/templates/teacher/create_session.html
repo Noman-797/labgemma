@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}New session · LabGemma{% endblock %}
+{% block main_class %}page page--center{% endblock %}
+{% block content %}
+<div class="form-card">
+  <a class="back" href="/teacher/">Sessions</a>
+  <h1>New lab session</h1>
+  <p class="lede">Name the session. Gemma can draft a short student-facing note from the title.</p>
+
+  {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+  <div id="err" class="alert error" style="display:none"></div>
+
+  <form method="post" id="create-form">
+    <label for="title">Title</label>
+    <input id="title" name="title" required placeholder="Lab 1 — Conditionals" autocomplete="off" />
+
+    <div class="label-row">
+      <label for="description">Description</label>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-ai" title="Generate from title">
+        Generate with Gemma
+      </button>
+    </div>
+    <textarea id="description" name="description" class="plain" rows="3"
+      placeholder="Short note for students — or generate with Gemma"></textarea>
+    <p class="hint" id="ai-hint" style="display:none">Writing description…</p>
+
+    <label for="marks_per_lab">Display marks</label>
+    <input id="marks_per_lab" type="number" name="marks_per_lab" value="100" min="1" />
+
+    <label for="duration_minutes">Lab duration (minutes)</label>
+    <input id="duration_minutes" type="number" name="duration_minutes" value="60" min="1" max="1440" />
+    <p class="hint" style="display:block;color:var(--muted)">Timer starts when you Go Live.</p>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Create session</button>
+      <a class="btn btn-ghost" href="/teacher/">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const titleEl = document.getElementById('title');
+const descEl = document.getElementById('description');
+const btnAi = document.getElementById('btn-ai');
+const hint = document.getElementById('ai-hint');
+const err = document.getElementById('err');
+
+btnAi.addEventListener('click', async () => {
+  err.style.display = 'none';
+  const title = titleEl.value.trim();
+  if (!title) {
+    err.style.display = 'block';
+    err.textContent = 'Enter a title first, then generate.';
+    titleEl.focus();
+    return;
+  }
+  btnAi.disabled = true;
+  hint.style.display = 'block';
+  hint.textContent = 'Writing description…';
+  try {
+    const body = new FormData();
+    body.append('title', title);
+    const res = await fetch('/teacher/sessions/describe', {
+      method: 'POST', body, headers: { 'Accept': 'application/json' },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Generation failed');
+    descEl.value = data.description || '';
+    hint.textContent = 'Description ready — edit if you like.';
+  } catch (ex) {
+    err.style.display = 'block';
+    err.textContent = ex.message || String(ex);
+    hint.style.display = 'none';
+  } finally {
+    btnAi.disabled = false;
+  }
+});
+</script>
+{% endblock %}

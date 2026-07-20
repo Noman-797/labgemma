@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ session.title }} · LabGemma{% endblock %}
+{% block content %}
+<a class="back" href="/lab/">Labs</a>
+
+<div class="page-head page-head__row">
+  <div>
+    <div class="title-row">
+      <h1>{{ session.title }}</h1>
+      {% if session.status == 'active' %}
+      <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>Live</span>
+      {% elif session.status == 'draft' %}
+      <span class="status-pill status-pill--upcoming">Upcoming</span>
+      {% else %}
+      <span class="status-pill status-pill--past">Ended</span>
+      {% endif %}
+      {% if ends_at_iso and session.status == 'active' %}
+      <span class="exam-timer" data-ends="{{ ends_at_iso }}">--:--:--</span>
+      {% elif session.duration_minutes and session.status == 'draft' %}
+      <span class="muted" style="font-size:0.85rem;font-weight:600">{{ session.duration_minutes }} min</span>
+      {% endif %}
+    </div>
+    {% if session.description %}
+    <p>{{ session.description }}</p>
+    {% elif session.status == 'draft' %}
+    <p>This lab is upcoming. Solving opens when your teacher activates it.</p>
+    {% elif session.status == 'closed' %}
+    <p>This lab has ended. You can still review your results.</p>
+    {% else %}
+    <p>Solve each problem once. Gemma marks with partial credit.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if not problems %}
+<div class="empty-state">
+  <h2>No problems yet</h2>
+  <p>Your teacher has not approved any problems for this lab. Check back soon.</p>
+</div>
+{% else %}
+<div class="section-label">
+  <span>{{ problems|length }} problem{% if problems|length != 1 %}s{% endif %}</span>
+</div>
+<div class="problem-list">
+  {% for p in problems %}
+  <article class="problem-row">
+    <div class="problem-row__index">{{ p.order }}</div>
+    <div class="problem-row__body">
+      <h2>{{ p.title }}</h2>
+      <p class="problem-row__status">
+        {% if p.id in finals %}
+        <span class="ok">
+          {% if finals[p.id].ai_total_marks is none %}
+          Grading…
+          {% elif finals[p.id].verdict == 'AC' %}
+          Accepted {{ finals[p.id].ai_total_marks }} / {{ p.total_marks }}
+          {% else %}
+          Scored {{ finals[p.id].ai_total_marks }} / {{ p.total_marks }}
+          {% endif %}
+        </span>
+        {% else %}
+        <span class="muted">Not submitted · {{ p.total_marks }} marks</span>
+        {% endif %}
+      </p>
+    </div>
+    {% if p.id in finals %}
+    <div class="problem-row__actions">
+      <a class="btn btn-ghost btn-sm" href="/lab/{{ session.id }}/problem/{{ p.id }}/">Problem</a>
+      {% if finals[p.id].verdict != 'AC' or finals[p.id].ai_total_marks is none %}
+      <a class="btn btn-primary btn-sm" href="/lab/result/{{ finals[p.id].id }}/">
+        {% if finals[p.id].ai_total_marks is none %}View grading{% else %}AI grade{% endif %}
+      </a>
+      {% endif %}
+    </div>
+    {% elif can_solve %}
+    <a class="btn btn-primary btn-sm" href="/lab/{{ session.id }}/problem/{{ p.id }}/">Solve</a>
+    {% else %}
+    <a class="btn btn-ghost btn-sm" href="/lab/{{ session.id }}/problem/{{ p.id }}/">View</a>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

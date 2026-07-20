@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Labs · LabGemma{% endblock %}
+{% block content %}
+<div class="page-head page-head__row">
+  <div>
+    <h1>Labs</h1>
+    <p>Join live labs, preview upcoming ones, and review past results.</p>
+  </div>
+  <a class="btn btn-ghost" href="/learning/">Personalized learning</a>
+</div>
+
+{% if not has_student_id %}
+<div class="alert error">
+  Enter Your Student ID. Set it in <a href="/profile?need_id=1">Profile</a> before entering a live lab.
+</div>
+{% endif %}
+
+{# —— Live —— #}
+<section class="contest-section">
+  <div class="contest-section__head contest-section__head--live">
+    <span class="live-dot" aria-hidden="true"></span>
+    <h2>Live</h2>
+  </div>
+  {% if live %}
+  <div class="contest-rows">
+    {% for item in live %}
+    {% set s = item.session %}
+    <article class="contest-row contest-row--live">
+      <div class="contest-row__body">
+        <h3>{{ s.title }}</h3>
+        <div class="contest-row__meta">
+          <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>Live</span>
+          <span>
+            {% if item.problem_count == 0 %}No problems yet
+            {% elif item.problem_count == 1 %}1 problem
+            {% else %}{{ item.problem_count }} problems{% endif %}
+          </span>
+          {% if item.ends_at_iso %}
+          <span class="exam-timer exam-timer--soft" data-ends="{{ item.ends_at_iso }}">--:--:--</span>
+          {% elif item.duration_minutes %}
+          <span>{{ item.duration_minutes }} min</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if has_student_id %}
+      <a class="btn btn-primary" href="/lab/{{ s.id }}/">Enter lab</a>
+      {% else %}
+      <a class="btn btn-primary" href="/profile?need_id=1">Enter Your Student ID</a>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="contest-empty">No live labs right now</div>
+  {% endif %}
+</section>
+
+{# —— Upcoming —— #}
+<section class="contest-section">
+  <div class="contest-section__head contest-section__head--upcoming">
+    <h2>Upcoming</h2>
+  </div>
+  {% if upcoming %}
+  <div class="contest-rows">
+    {% for item in upcoming %}
+    {% set s = item.session %}
+    <article class="contest-row contest-row--upcoming">
+      <div class="contest-row__body">
+        <h3>{{ s.title }}</h3>
+        <div class="contest-row__meta">
+          <span class="status-pill status-pill--upcoming">Upcoming</span>
+          {% if s.description %}
+          <span class="contest-row__hint">{{ s.description }}</span>
+          {% else %}
+          <span>Opens when your teacher activates it</span>
+          {% endif %}
+          {% if item.duration_minutes %}
+          <span>{{ item.duration_minutes }} min</span>
+          {% endif %}
+        </div>
+      </div>
+      <a class="btn btn-ghost" href="/lab/{{ s.id }}/">View</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="contest-empty">No upcoming labs scheduled</div>
+  {% endif %}
+</section>
+
+{# —— Past —— #}
+<section class="contest-section">
+  <div class="contest-section__head contest-section__head--past">
+    <h2>Past</h2>
+  </div>
+  {% if past %}
+  <div class="contest-rows">
+    {% for item in past %}
+    {% set s = item.session %}
+    <article class="contest-row contest-row--past">
+      <div class="contest-row__body">
+        <h3>{{ s.title }}</h3>
+        <div class="contest-row__meta">
+          <span class="status-pill status-pill--past">Ended</span>
+          <span>
+            {% if item.problem_count == 1 %}1 problem
+            {% else %}{{ item.problem_count }} problems{% endif %}
+          </span>
+        </div>
+      </div>
+      <a class="btn btn-ghost" href="/lab/{{ s.id }}/">View results</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="contest-empty">No past labs yet</div>
+  {% endif %}
+</section>
+{% endblock %}

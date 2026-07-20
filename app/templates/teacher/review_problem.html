@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Review · {{ problem.title }}{% endblock %}
+{% block main_class %}page page--review{% endblock %}
+{% block content %}
+<a class="back" href="/teacher/sessions/{{ session.id }}/problems">Problems</a>
+
+<div class="page-head page-head__row page-head--compact">
+  <div>
+    <div class="title-row">
+      <h1>{{ problem.title }}</h1>
+      {% if problem.rubric_approved %}
+      <span class="badge active">approved</span>
+      {% else %}
+      <span class="badge draft">Need Review</span>
+      {% endif %}
+    </div>
+    <p>Edit if needed, then approve when the statement and rubric feel fair.</p>
+  </div>
+  <div class="toolbar">
+    <form method="post">
+      <input type="hidden" name="action" value="approve" />
+      <button class="btn btn-primary" type="submit" {% if problem.rubric_approved %}disabled{% endif %}>
+        {% if problem.rubric_approved %}Approved{% else %}Approve{% endif %}
+      </button>
+    </form>
+    <form method="post"
+          data-confirm-title="Delete this problem?"
+          data-confirm="This problem and its related data will be removed."
+          data-confirm-btn="Yes, delete">
+      <input type="hidden" name="action" value="delete" />
+      <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+    </form>
+  </div>
+</div>
+
+<div class="review-grid">
+  <section class="review-pane">
+    <div class="review-pane__head">
+      <h2>Problem</h2>
+    </div>
+    <form method="post" class="review-pane__body">
+      <input type="hidden" name="action" value="save_problem" />
+      <label for="title">Title</label>
+      <input id="title" name="title" value="{{ problem.title }}" />
+
+      <label for="description">Statement</label>
+      <textarea id="description" name="description" class="plain grow-field" rows="3">{{ problem.description }}</textarea>
+
+      <label for="input_format">Input</label>
+      <textarea id="input_format" name="input_format" class="plain grow-field" rows="2">{{ problem.input_format }}</textarea>
+
+      <label for="output_format">Output</label>
+      <textarea id="output_format" name="output_format" class="plain grow-field" rows="2">{{ problem.output_format }}</textarea>
+
+      <label for="constraints">Constraints</label>
+      <input id="constraints" name="constraints" value="{{ problem.constraints }}" />
+
+      <div class="field-grid field-grid--2">
+        <div>
+          <label for="sample_input">Sample in</label>
+          <textarea id="sample_input" name="sample_input" class="grow-field grow-field--mono" rows="2">{{ problem.sample_input }}</textarea>
+        </div>
+        <div>
+          <label for="sample_output">Sample out</label>
+          <textarea id="sample_output" name="sample_output" class="grow-field grow-field--mono" rows="2">{{ problem.sample_output }}</textarea>
+        </div>
+      </div>
+
+      <div class="form-actions form-actions--sticky">
+        <button class="btn btn-primary btn-sm" type="submit">Save problem</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="review-pane">
+    <div class="review-pane__head">
+      <h2>Rubric</h2>
+    </div>
+    <div class="review-pane__body">
+      <div class="rubric-cards">
+        {% for r in rubric %}
+        <div class="rubric-card">
+          <div class="rubric-card__top">
+            <strong>{{ r.criterion }}</strong>
+            <span class="rubric-card__marks">{{ r.marks }}</span>
+          </div>
+          <p>{{ r.description }}</p>
+        </div>
+        {% else %}
+        <p class="muted">No rubric criteria yet.</p>
+        {% endfor %}
+      </div>
+
+      <form method="post" class="regen-box">
+        <input type="hidden" name="action" value="regenerate_rubric" />
+        <label for="rubric_prompt">Regenerate with hint</label>
+        <textarea id="rubric_prompt" name="rubric_prompt" class="plain" rows="2"
+          placeholder="e.g. Put more marks on reversal logic">{{ problem.rubric_prompt }}</textarea>
+        <button class="btn btn-ghost btn-sm" type="submit" style="margin-top:0.5rem">Regenerate rubric</button>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if message %}showToast({{ message|tojson }}, 'ok');{% endif %}
+{% if error %}showToast({{ error|tojson }}, 'error');{% endif %}
+function autosize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+document.querySelectorAll('.grow-field').forEach((el) => {
+  autosize(el);
+  el.addEventListener('input', () => autosize(el));
+});
+</script>
+{% endblock %}

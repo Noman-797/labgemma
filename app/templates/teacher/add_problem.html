@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Add problem · {{ session.title }}{% endblock %}
+{% block main_class %}page page--center page--center-md{% endblock %}
+{% block content %}
+<div class="form-card">
+  <a class="back" href="/teacher/sessions/{{ session.id }}/problems">Problems</a>
+  <span class="session-tag">{{ session.title }}</span>
+  <h1>Add a problem</h1>
+  <p class="lede">Describe what students should implement. Gemma returns the statement, samples, and rubric together.</p>
+
+  <div id="loading" class="alert info" style="display:none">
+    <strong>Gemma is writing the lab…</strong>
+    <div class="muted" id="loading-step" style="margin-top:0.35rem">Building problem + rubric</div>
+  </div>
+  {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+  <div id="err" class="alert error" style="display:none"></div>
+
+  <form id="gen-form" method="post">
+    <label for="ai_prompt">Teacher prompt</label>
+    <textarea name="ai_prompt" id="ai_prompt" class="plain" required rows="4"
+      placeholder="Even number checker: read an integer and print even or odd."></textarea>
+
+    <div class="field-grid">
+      <div>
+        <label for="language">Language</label>
+        <select name="language" id="language">
+          <option value="python">Python</option>
+          <option value="cpp">C++</option>
+          <option value="c">C</option>
+          <option value="java">Java</option>
+        </select>
+      </div>
+      <div>
+        <label for="difficulty">Difficulty</label>
+        <select name="difficulty" id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <div>
+        <label for="total_marks">Marks</label>
+        <input type="number" name="total_marks" id="total_marks" value="10" min="1" />
+      </div>
+    </div>
+
+    <label for="rubric_prompt">Rubric hints <span class="muted" style="font-weight:500">(optional)</span></label>
+    <textarea name="rubric_prompt" id="rubric_prompt" class="plain" rows="2"
+      placeholder="Put most marks on the even/odd check, not on printing."></textarea>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" id="btn-gen" type="submit">Generate with Gemma</button>
+      <a class="btn btn-ghost" href="/teacher/sessions/{{ session.id }}/problems">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const sessionId = {{ session.id }};
+const form = document.getElementById('gen-form');
+const loading = document.getElementById('loading');
+const step = document.getElementById('loading-step');
+const err = document.getElementById('err');
+const btn = document.getElementById('btn-gen');
+const tips = ['Building problem statement + rubric…', 'Still generating — cloud models can take a moment…', 'Almost done…'];
+let tipIdx = 0, tipTimer = null;
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  err.style.display = 'none';
+  loading.style.display = 'block';
+  btn.disabled = true;
+  tipIdx = 0; step.textContent = tips[0];
+  tipTimer = setInterval(() => { tipIdx = Math.min(tipIdx + 1, tips.length - 1); step.textContent = tips[tipIdx]; }, 10000);
+  const body = new FormData();
+  ['ai_prompt','language','difficulty','rubric_prompt','total_marks'].forEach(id => body.append(id, document.getElementById(id).value));
+  const controller = new AbortController();
+  const kill = setTimeout(() => controller.abort(), 320000);
+  try {
+    const res = await fetch(`/teacher/sessions/${sessionId}/problems/add`, {
+      method: 'POST', body, signal: controller.signal, headers: { 'Accept': 'application/json' }, redirect: 'manual',
+    });
+    clearTimeout(kill); clearInterval(tipTimer);
+    const ctype = res.headers.get('content-type') || '';
+    if (ctype.includes('application/json')) {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Generation failed');
+      window.location = data.redirect_url; return;
+    }
+    if (res.status === 303 || res.status === 302) {
+      const loc = res.headers.get('Location'); if (loc) { window.location = loc; return; }
+    }
+    throw new Error(`HTTP ${res.status}`);
+  } catch (ex) {
+    clearTimeout(kill); clearInterval(tipTimer);
+    loading.style.display = 'none'; btn.disabled = false;
+    err.style.display = 'block';
+    err.textContent = ex.name === 'AbortError' ? 'Timed out waiting for Gemma. Try again.' : (ex.message || String(ex));
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Profile · LabGemma{% endblock %}
+{% block main_class %}page page--center page--center-wide{% endblock %}
+{% block content %}
+<div class="form-card form-card--profile">
+  <h1>Profile</h1>
+  <p class="lede">Your account details for LabGemma.</p>
+
+  {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+
+  <div class="profile-meta">
+    <div>
+      <span class="prob-label">Role</span>
+      <p class="profile-meta__value">{{ user.role|capitalize }}</p>
+    </div>
+    <div>
+      <span class="prob-label">Email</span>
+      <p class="profile-meta__value profile-meta__value--email">{{ user.email }}</p>
+    </div>
+  </div>
+
+  <form method="post" action="/profile">
+    <label for="name">Display name</label>
+    <input id="name" name="name" required maxlength="120" value="{{ user.name }}" autocomplete="name" />
+
+    {% if user.role == 'student' %}
+    <label for="student_id">Student ID</label>
+    <input
+      id="student_id"
+      name="student_id"
+      required
+      maxlength="64"
+      value="{{ user.student_id or '' }}"
+      placeholder="Enter your student ID"
+      autocomplete="off"
+    />
+    {% endif %}
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn btn-ghost" href="{% if user.role == 'teacher' %}/teacher/{% else %}/lab/{% endif %}">Back</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if message %}<script>showToast({{ message|tojson }}, 'ok');</script>{% endif %}
+{% endblock %}

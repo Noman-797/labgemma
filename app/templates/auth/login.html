@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Login · LabGemma{% endblock %}
+{% block body %}
+<div class="auth-shell">
+  <div class="auth-panel auth-panel--login">
+    <div class="auth-intro">
+      <h1>Welcome back</h1>
+      <p class="lede">Sign in to create labs or submit for AI marking</p>
+    </div>
+
+    {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+
+    <form method="post" action="/login" id="login-form">
+      <label for="email">Email</label>
+      <input id="email" type="email" name="email" required placeholder="Enter your email" autocomplete="username" />
+      <label for="password">Password</label>
+      <div class="password-field">
+        <input id="password" type="password" name="password" required placeholder="Enter your password" autocomplete="current-password" />
+        <button type="button" class="password-toggle" id="togglePass" aria-label="Show password" title="Show password">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+      <div class="auth-actions">
+        <button class="btn btn-primary" type="submit">Login</button>
+      </div>
+    </form>
+
+    <div class="demo-box">
+      <div class="demo-box__head">Quick demo</div>
+      <div class="demo-lines">
+        <button type="button" class="demo-row" data-email="teacher@demo.com" data-pass="teacher123">
+          Login as Teacher
+        </button>
+        <button type="button" class="demo-row" data-email="abdnoman093@gmail.com" data-pass="student123">
+          Login as Student
+        </button>
+      </div>
+    </div>
+
+    <p class="auth-foot"><a href="/register">Need an account?</a></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const emailEl = document.getElementById('email');
+const passEl = document.getElementById('password');
+document.querySelectorAll('.demo-row').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    emailEl.value = btn.dataset.email;
+    passEl.value = btn.dataset.pass;
+    document.querySelectorAll('.demo-row').forEach((b) => b.classList.remove('demo-row--active'));
+    btn.classList.add('demo-row--active');
+    passEl.focus();
+  });
+});
+
+const toggle = document.getElementById('togglePass');
+toggle.addEventListener('click', () => {
+  const show = passEl.type === 'password';
+  passEl.type = show ? 'text' : 'password';
+  toggle.classList.toggle('is-on', show);
+  toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  toggle.title = show ? 'Hide password' : 'Show password';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Problems · {{ session.title }}{% endblock %}
+{% block content %}
+<a class="back" href="/teacher/">Sessions</a>
+
+<div class="page-head page-head__row">
+  <div>
+    <div class="title-row">
+      <h1>{{ session.title }}</h1>
+      <span class="badge {{ session.status }}">
+        {% if session.status == 'active' %}Live
+        {% elif session.status == 'closed' %}Past
+        {% else %}Upcoming{% endif %}
+      </span>
+    </div>
+    {% if session.description %}
+    <p>{{ session.description }}</p>
+    {% else %}
+    <p>Add problems with Gemma, review each rubric, then activate when students may enter.</p>
+    {% endif %}
+    <form method="post" action="/teacher/sessions/{{ session.id }}/duration" class="duration-form">
+      <label for="duration_minutes">Duration</label>
+      <input id="duration_minutes" type="number" name="duration_minutes"
+             value="{{ session.duration_minutes or 60 }}" min="1" max="1440" />
+      <span class="muted">minutes</span>
+      <button class="btn btn-ghost btn-sm" type="submit">Save time</button>
+      {% if session.status == 'active' and session.ends_at %}
+      <span class="exam-timer exam-timer--inline" data-ends="{{ session.ends_at.isoformat() }}Z"></span>
+      {% endif %}
+    </form>
+  </div>
+  <div class="toolbar">
+    <a class="btn btn-primary" href="/teacher/sessions/{{ session.id }}/problems/add">Add problem</a>
+    <a class="btn btn-ghost" href="/teacher/sessions/{{ session.id }}/submissions">Submissions</a>
+    {% if session.status != 'active' %}
+    <form method="post" action="/teacher/sessions/{{ session.id }}/status">
+      <input type="hidden" name="status" value="active" />
+      <button class="btn btn-primary" type="submit">Go Live</button>
+    </form>
+    {% endif %}
+    {% if session.status == 'active' %}
+    <form method="post" action="/teacher/sessions/{{ session.id }}/status">
+      <input type="hidden" name="status" value="closed" />
+      <button class="btn btn-warn" type="submit">End lab</button>
+    </form>
+    {% endif %}
+    {% if session.status == 'closed' %}
+    <form method="post" action="/teacher/sessions/{{ session.id }}/status">
+      <input type="hidden" name="status" value="draft" />
+      <button class="btn btn-ghost" type="submit">Set upcoming</button>
+    </form>
+    {% elif session.status == 'active' %}
+    <form method="post" action="/teacher/sessions/{{ session.id }}/status">
+      <input type="hidden" name="status" value="draft" />
+      <button class="btn btn-ghost" type="submit">Set upcoming</button>
+    </form>
+    {% endif %}
+    <form method="post" action="/teacher/sessions/{{ session.id }}/delete"
+          data-confirm-title="Delete this session?"
+          data-confirm="Problems and submissions will be removed. This cannot be undone."
+          data-confirm-btn="Yes, delete">
+      <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+    </form>
+  </div>
+</div>
+
+{% if not problems %}
+<div class="empty-state">
+  <h2>No problems yet</h2>
+  <p>Describe what students should solve in plain language. Gemma builds the full statement, samples, and marking rubric.</p>
+  <a class="btn btn-primary" href="/teacher/sessions/{{ session.id }}/problems/add">Generate first problem</a>
+</div>
+{% else %}
+<div class="section-label">
+  <span>{{ problems|length }} problem{% if problems|length != 1 %}s{% endif %}</span>
+</div>
+<div class="problem-list">
+  {% for p in problems %}
+  <article class="problem-row">
+    <div class="problem-row__index">{{ p.order }}</div>
+    <div class="problem-row__body">
+      <h2>{{ p.title }}</h2>
+    </div>
+    <a class="btn {% if p.rubric_approved %}btn-ghost{% else %}btn-primary{% endif %} btn-sm"
+       href="/teacher/sessions/{{ session.id }}/problems/{{ p.id }}/review">
+      {% if p.rubric_approved %}View{% else %}Review{% endif %}
+    </a>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

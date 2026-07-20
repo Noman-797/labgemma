@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Why LabGemma · Motivation{% endblock %}
+{% block main_class %}page page--motive{% endblock %}
+{% block content %}
+<a class="back" href="/">Home</a>
+
+<div class="page-head page-head--motive">
+  <p class="motive-studio">A Concern of <strong>Semicolons</strong></p>
+  <h1>Why LabGemma?</h1>
+  <p class="motive-lead">AI Assisted Programming Lab and Personalized Learning System</p>
+</div>
+
+<article class="motive">
+  <section class="motive-block motive-block--card">
+    <h2>The problem</h2>
+    <p>
+      University programming labs still depend on a lot of manual work and strict pass or fail judging. This is slow for teachers and unfair to many students.
+    </p>
+    <ul>
+      <li>Teachers spend many hours making problems, writing test cases, and checking every submission by hand.</li>
+      <li>Normal online judges only look at the final output. A student who gets <strong>CE</strong>, <strong>WA</strong>, or <strong>RE</strong> often gets zero, even when the code shows that they understood most of the problem.</li>
+      <li>Using only AI to grade is not safe. Without running the code or following a proper rubric, it can give marks that are not fair or consistent.</li>
+      <li>After the marks are given, students usually do not get practice based on their own mistakes. So their weak areas stay weak and they improve very slowly.</li>
+    </ul>
+  </section>
+
+  <section class="motive-block motive-block--card">
+    <h2>Our insight</h2>
+    <p>
+      Inspired by the <strong>ICER 2025</strong> paper
+      <a href="https://arxiv.org/abs/2503.23989" target="_blank" rel="noopener noreferrer"><em>Rubric Is All You Need</em></a>
+      (Pathak et al.), <strong>question specific rubrics</strong> give fairer logical assessment than generic or blind LLM scoring.
+    </p>
+    <p>
+      LabGemma uses <strong>rubric specific evaluation</strong> with <strong>Gemma 4</strong> and teacher approved rubrics. AI is used only where it adds real value.
+    </p>
+    <p>
+      This <strong>cuts the teacher's workload</strong> a lot. Gemma drafts the problems, test cases, and rubrics, and helps grade the hard cases, so teachers spend their time reviewing instead of doing everything by hand.
+    </p>
+  </section>
+
+  <section class="motive-block motive-block--card">
+    <h2>How LabGemma works</h2>
+    <div class="motive-steps">
+      <div class="motive-step">
+        <h3><span class="motive-step__num">1</span> Generate</h3>
+        <p>The instructor provides a prompt, and <strong>Gemma 4</strong> generates the programming problem, hidden test cases, and a question specific grading rubric.</p>
+      </div>
+      <div class="motive-step">
+        <h3><span class="motive-step__num">2</span> Approve</h3>
+        <p>The instructor reviews and approves everything before publishing the lab.</p>
+      </div>
+      <div class="motive-step">
+        <h3><span class="motive-step__num">3</span> Solve</h3>
+        <p>Students solve the problem inside LabGemma using <strong>C, C++, Python, or Java</strong>.</p>
+      </div>
+      <div class="motive-step">
+        <h3><span class="motive-step__num">4</span> Judge first</h3>
+        <p>Every submission is executed against hidden test cases.</p>
+        <ul>
+          <li><strong>Accepted (AC):</strong> Full marks are awarded instantly.</li>
+          <li><strong>CE / WA / RE / Partial Pass:</strong> The submission moves to AI evaluation.</li>
+        </ul>
+      </div>
+      <div class="motive-step">
+        <h3><span class="motive-step__num">5</span> Rubric specific AI evaluation</h3>
+        <p>Gemma 4 evaluates failed or partial submissions using the <strong>teacher approved rubric</strong> and performs a consistency check before suggesting marks.</p>
+      </div>
+      <div class="motive-step">
+        <h3><span class="motive-step__num">6</span> Teacher in control</h3>
+        <p>Teachers can review, edit, or override every AI generated score. <strong>The instructor always makes the final decision.</strong></p>
+      </div>
+      <div class="motive-step">
+        <h3><span class="motive-step__num">7</span> Personalized learning</h3>
+        <p>After each lab, LabGemma analyzes the student's performance and automatically generates personalized practice problems based on their weak areas, creating a continuous learning loop instead of just giving marks.</p>
+      </div>
+    </div>
+  </section>
+</article>
+{% endblock %}

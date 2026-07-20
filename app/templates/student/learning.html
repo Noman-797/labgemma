@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Learning · LabGemma{% endblock %}
+{% block content %}
+<a class="back" href="/lab/">Labs</a>
+
+<div class="page-head page-head__row">
+  <div>
+    <h1>Personalized learning</h1>
+    <p>From your past labs: practice problems created in LabGemma.</p>
+  </div>
+  <form method="post" action="/learning/analyze" class="toolbar" id="learn-analyze-form">
+    <button class="btn btn-primary" type="submit" id="learn-analyze-btn" {% if history_count == 0 %}disabled{% endif %}>
+      <span class="btn-spin" aria-hidden="true"></span>
+      <span class="btn-label">{% if analysis %}Refresh with Gemma{% else %}Analyze with Gemma{% endif %}</span>
+    </button>
+  </form>
+</div>
+
+{% if err %}
+<div class="alert error">{{ err }}</div>
+{% endif %}
+
+{% if history_count == 0 %}
+<div class="empty-state">
+  <h2>No lab history yet</h2>
+  <p>Submit at least one lab problem. Then Gemma can build practice problems for you.</p>
+  <a class="btn btn-primary" href="/lab/">Go to labs</a>
+</div>
+{% else %}
+
+<section class="learn-section">
+  <h2 class="section-label">Your recent labs</h2>
+  <div class="learn-history">
+    {% for h in history[:8] %}
+    <article class="learn-history__row {% if h.needs_practice %}learn-history__row--weak{% endif %}">
+      <div>
+        <strong>{{ h.problem }}</strong>
+        <p class="muted" style="margin:0.2rem 0 0;font-size:0.84rem">
+          {{ h.session }} · {{ h.verdict }}
+          {% if h.score is not none %} · {{ h.score }}/{{ h.total_marks }}{% endif %}
+          · {{ h.tests_passed }} tests
+        </p>
+      </div>
+      {% if h.needs_practice %}
+      <span class="badge draft">Needs practice</span>
+      {% else %}
+      <span class="badge active">On track</span>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% if analysis %}
+<section class="learn-section">
+  <h2 class="section-label">Gemma analysis</h2>
+  {% if analysis.overall_summary %}
+  <p class="learn-summary">{{ analysis.overall_summary }}</p>
+  {% endif %}
+
+  <div class="learn-grid">
+    <div class="learn-card">
+      <h3>Strong topics</h3>
+      {% if analysis.strong_topics %}
+      <ul>{% for t in analysis.strong_topics %}<li>{{ t }}</li>{% endfor %}</ul>
+      {% else %}
+      <p class="muted">None listed yet</p>
+      {% endif %}
+    </div>
+    <div class="learn-card">
+      <h3>Weak topics</h3>
+      {% if analysis.weak_topics %}
+      <ul>{% for t in analysis.weak_topics %}<li>{{ t }}</li>{% endfor %}</ul>
+      {% else %}
+      <p class="muted">None listed yet</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if analysis.study_recommendations %}
+  <div class="learn-card learn-card--wide">
+    <h3>Study recommendations</h3>
+    <ul>
+      {% for r in analysis.study_recommendations %}<li>{{ r }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+
+<section class="learn-section">
+  <h2 class="section-label">Practice problems</h2>
+  <p class="muted" style="margin:0 0 0.75rem;font-size:0.9rem">Created in LabGemma from your past labs. Solve them here.</p>
+  {% if practices %}
+  <div class="learn-ideas">
+    {% for p in practices %}
+    <article class="learn-idea">
+      <strong class="learn-idea__title">{{ p.title }}</strong>
+      {% if p.focus_topic %}
+      <p class="muted learn-idea__meta">Focus: {{ p.focus_topic }}</p>
+      {% endif %}
+      <a class="btn btn-primary btn-sm learn-idea__cta" href="/learning/practice/{{ p.id }}/">Practice</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="contest-empty">No practice problems yet. Click Analyze with Gemma.</div>
+  {% endif %}
+</section>
+
+{% else %}
+<div class="alert info">Click <strong>Analyze with Gemma</strong> to build practice problems from your lab results.</div>
+{% endif %}
+
+{% endif %}
+<script>
+(function () {
+  const form = document.getElementById('learn-analyze-form');
+  const btn = document.getElementById('learn-analyze-btn');
+  if (!form || !btn || btn.disabled) return;
+  form.addEventListener('submit', function () {
+    btn.disabled = true;
+    btn.classList.add('is-busy');
+    const label = btn.querySelector('.btn-label');
+    if (label) label.textContent = 'Analyzing…';
+  });
+})();
+</script>
+{% endblock %}

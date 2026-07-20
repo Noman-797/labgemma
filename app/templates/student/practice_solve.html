@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}{{ problem.title }} · Practice{% endblock %}
+{% block main_class %}page page--flush{% endblock %}
+{% block footer %}{% endblock %}
+{% block head %}
+<style>
+  html, body { overflow: hidden !important; height: 100% !important; }
+  .site-footer { display: none; }
+  body { background: #fff !important; }
+  .site-nav { background: rgba(255,255,255,0.94); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exam-shell">
+  <header class="exam-top">
+    <div class="exam-top__main">
+      <h1>{{ problem.title }}</h1>
+      <div class="exam-meta">
+        <span>Practice · {{ problem.total_marks }} marks</span>
+        {% if problem.focus_topic %}
+        <span class="exam-dot" aria-hidden="true"></span>
+        <span>{{ problem.focus_topic }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="exam-top__actions">
+      <a class="back back--exam" href="/learning/">Learning</a>
+    </div>
+  </header>
+
+  <div class="exam-split">
+    <aside class="exam-problem">
+      <section class="prob-block">
+        <h2 class="prob-label">Statement</h2>
+        <div class="prob-text">{{ problem.description }}</div>
+      </section>
+      {% if problem.input_format %}
+      <section class="prob-block">
+        <h2 class="prob-label">Input</h2>
+        <div class="prob-text muted">{{ problem.input_format }}</div>
+      </section>
+      {% endif %}
+      {% if problem.output_format %}
+      <section class="prob-block">
+        <h2 class="prob-label">Output</h2>
+        <div class="prob-text muted">{{ problem.output_format }}</div>
+      </section>
+      {% endif %}
+      <section class="prob-block">
+        <h2 class="prob-label">Example</h2>
+        <div class="sample-grid">
+          <div class="sample-box">
+            <div class="sample-box__label">Input</div>
+            <pre>{{ problem.sample_input }}</pre>
+          </div>
+          <div class="sample-box">
+            <div class="sample-box__label">Output</div>
+            <pre>{{ problem.sample_output }}</pre>
+          </div>
+        </div>
+      </section>
+      {% if latest %}
+      <section class="prob-done">
+        <strong>Last attempt</strong>
+        <p>{{ latest.verdict }} · {{ latest.ai_total_marks }} / {{ problem.total_marks }}</p>
+      </section>
+      {% endif %}
+    </aside>
+
+    <section class="exam-editor">
+      <div class="exam-toolbar">
+        <div class="exam-toolbar__left">
+          <select id="language" class="exam-lang">
+            <option value="python" {% if problem.language == 'python' %}selected{% endif %}>Python</option>
+            <option value="cpp" {% if problem.language == 'cpp' %}selected{% endif %}>C++</option>
+            <option value="c" {% if problem.language == 'c' %}selected{% endif %}>C</option>
+            <option value="java" {% if problem.language == 'java' %}selected{% endif %}>Java</option>
+          </select>
+        </div>
+        <div class="exam-toolbar__actions">
+          <button class="btn btn-ghost btn-sm" id="testBtn" type="button">Test</button>
+          <button class="btn btn-primary btn-sm" id="submitBtn" type="button">Submit</button>
+        </div>
+      </div>
+      <div id="editorContainer"><div id="editor"></div></div>
+      <div id="resultPanel" class="exam-result" hidden>
+        <div class="exam-result__bar">
+          <strong>Result</strong>
+          <button type="button" class="exam-result__close" id="closeResult">Close</button>
+        </div>
+        <div class="exam-result__body" id="resultContent"></div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+<script>
+const practiceId = {{ problem.id }};
+const totalMarks = {{ problem.total_marks }};
+const existingCode = {{ existing_code_json }};
+const defaultCode = {
+  c: '#include <stdio.h>\n\nint main() {\n    \n    return 0;\n}\n',
+  cpp: '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    \n    return 0;\n}\n',
+  python: '# Write your practice solution\n',
+  java: 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        \n    }\n}\n'
+};
+const initialLang = document.getElementById('language').value;
+let editor;
+require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
+require(['vs/editor/editor.main'], function () {
+  const monacoLang = initialLang === 'cpp' ? 'cpp' : initialLang === 'c' ? 'c' : initialLang === 'java' ? 'java' : 'python';
+  editor = monaco.editor.create(document.getElementById('editor'), {
+    value: (existingCode !== null ? existingCode : defaultCode[initialLang]),
+    language: monacoLang,
+    theme: 'vs',
+    fontSize: 14,
+    fontFamily: 'IBM Plex Mono, ui-monospace, monospace',
+    minimap: { enabled: false },
+    automaticLayout: true,
+    scrollBeyondLastLine: false,
+    padding: { top: 12, bottom: 12 },
+  });
+  document.getElementById('language').addEventListener('change', function () {
+    const lang = this.value;
+    const ml = lang === 'cpp' ? 'cpp' : lang === 'c' ? 'c' : lang === 'java' ? 'java' : 'python';
+    monaco.editor.setModelLanguage(editor.getModel(), ml);
+    editor.setValue(defaultCode[lang] || '');
+  });
+});
+
+const panel = document.getElementById('resultPanel');
+const resultContent = document.getElementById('resultContent');
+document.getElementById('closeResult').onclick = () => { panel.hidden = true; if (editor) editor.layout(); };
+
+function openPanel(html) {
+  resultContent.innerHTML = html;
+  panel.hidden = false;
+  if (editor) editor.layout();
+}
+
+function showResult(data) {
+  const v = data.verdict || 'UNKNOWN';
+  let html = `<div class="exam-result__verdict exam-result__verdict--${v === 'AC' ? 'ok' : 'bad'}">
+    <strong>${v}</strong>
+    <span>Practice</span>
+  </div>`;
+  if (data.total_test_cases > 0) {
+    html += `<div class="exam-result__tests"><p><strong>${data.test_cases_passed}</strong> / ${data.total_test_cases} tests passed</p></div>`;
+  }
+  if (data.error_message) {
+    html += `<pre class="exam-result__err">${String(data.error_message).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre>`;
+  }
+  if (data.ai_total_marks !== null && data.ai_total_marks !== undefined) {
+    html += `<p class="exam-result__score">${data.ai_total_marks} / ${totalMarks}</p>`;
+  }
+  if (data.summary) html += `<p class="muted" style="margin:0.4rem 0 0;font-size:0.86rem">${data.summary}</p>`;
+  openPanel(html);
+}
+
+document.getElementById('testBtn').onclick = async () => {
+  if (!editor) return;
+  openPanel('<p class="muted" style="margin:0">Running sample…</p>');
+  const res = await fetch(`/learning/practice/${practiceId}/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: editor.getValue(), language: document.getElementById('language').value }),
+  });
+  showResult(await res.json());
+};
+
+document.getElementById('submitBtn').onclick = async () => {
+  if (!editor) return;
+  const ok = await labConfirm({
+    title: 'Submit practice?',
+    text: 'Submit this practice attempt for grading.',
+    confirmText: 'Yes, submit',
+    cancelText: 'Keep editing',
+  });
+  if (!ok) return;
+  openPanel('<p class="muted" style="margin:0">Judging…</p>');
+  const res = await fetch(`/learning/practice/${practiceId}/submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: editor.getValue(), language: document.getElementById('language').value }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    openPanel(`<p class="exam-result__verdict--bad" style="margin:0">${data.error || 'Failed'}</p>`);
+    return;
+  }
+  showResult(data);
+};
+</script>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Submissions · {{ session.title }}{% endblock %}
+{% block main_class %}page page--marks{% endblock %}
+{% block content %}
+<div class="form-card form-card--marks">
+  <div class="marks-head">
+    <div>
+      <a class="back" href="/teacher/sessions/{{ session.id }}/problems">Problems</a>
+      <span class="session-tag">{{ session.title }}</span>
+      <h1>Submissions</h1>
+      <p class="lede">One row per student. Marks by problem, with lab average. Override any cell if a score feels unfair.</p>
+    </div>
+    <div class="marks-head__meta">
+      <span class="badge {% if session.status == 'active' %}active{% elif session.status == 'closed' %}closed{% else %}draft{% endif %}">
+        {% if session.status == 'active' %}Live{% elif session.status == 'closed' %}Past{% else %}Upcoming{% endif %}
+      </span>
+      {% if rows %}
+      <span class="marks-stat">{{ rows|length }} student{% if rows|length != 1 %}s{% endif %}</span>
+      <span class="marks-stat">{{ problems|length }} problem{% if problems|length != 1 %}s{% endif %}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if not rows %}
+  <div class="empty-state empty-state--inset">
+    <h2>No submissions yet</h2>
+    <p>Activate the session and ask students to solve. Marks will show up here by student.</p>
+    <a class="btn btn-primary" href="/teacher/sessions/{{ session.id }}/problems">Back to problems</a>
+  </div>
+  {% elif not problems %}
+  <div class="empty-state empty-state--inset">
+    <h2>No problems in this session</h2>
+    <p>Add problems first, then students can submit.</p>
+    <a class="btn btn-primary" href="/teacher/sessions/{{ session.id }}/problems">Add problems</a>
+  </div>
+  {% else %}
+
+  <div class="marks-table-wrap">
+    <table class="marks-table">
+      <thead>
+        <tr>
+          <th class="marks-table__num">#</th>
+          <th class="marks-table__student">Student</th>
+          {% for p in problems %}
+          <th class="marks-table__prob" title="{{ p.title }} (max {{ p.total_marks }})">P{{ p.order }}</th>
+          {% endfor %}
+          <th class="marks-table__submitted">Submitted</th>
+          <th class="marks-table__avg">Avg</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="marks-table__num">{{ row.index }}</td>
+          <td class="marks-table__student">
+            <strong>{{ row.student.name }}</strong>
+            {% if row.student.student_id %}
+            <span class="muted marks-table__sid">{{ row.student.student_id }}</span>
+            {% else %}
+            <span class="muted">No Student ID</span>
+            {% endif %}
+          </td>
+          {% for cell in row.cells %}
+          <td class="marks-table__cell">
+            {% if cell.sub %}
+            <div class="marks-cell">
+              <form method="post" action="/teacher/submissions/{{ cell.sub.id }}/marks" class="marks-cell__form">
+                <input
+                  type="number"
+                  step="0.5"
+                  name="ai_total_marks"
+                  value="{{ cell.marks if cell.marks is not none else 0 }}"
+                  min="0"
+                  max="{{ cell.problem.total_marks }}"
+                  aria-label="Marks for {{ cell.problem.title }}"
+                />
+                <button class="btn btn-ghost btn-sm" type="submit">Save</button>
+              </form>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm marks-code-btn"
+                data-code-modal="code-{{ cell.sub.id }}"
+              >Code</button>
+            </div>
+            {% else %}
+            <span class="marks-empty">—</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+          <td class="marks-table__submitted">
+            <span class="{% if row.submitted == problems|length %}marks-ok{% endif %}">
+              {{ row.submitted }} / {{ problems|length }}
+            </span>
+          </td>
+          <td class="marks-table__avg">
+            <strong>{{ '%.1f'|format(row.avg) }}</strong>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted marks-hint">Avg = sum of problem marks ÷ number of problems (missing submissions count as 0).</p>
+
+  {% for row in rows %}
+    {% for cell in row.cells %}
+      {% if cell.sub %}
+      <dialog class="code-modal" id="code-{{ cell.sub.id }}">
+        <div class="code-modal__panel">
+          <div class="code-modal__head">
+            <div>
+              <h2>{{ row.student.name }}</h2>
+              <p class="muted">
+                P{{ cell.problem.order }} · {{ cell.problem.title }}
+                · {{ cell.sub.language }}
+                {% if cell.sub.verdict %} · {{ cell.sub.verdict }}{% endif %}
+                {% if cell.marks is not none %} · {{ cell.marks }} / {{ cell.problem.total_marks }}{% endif %}
+              </p>
+            </div>
+            <form method="dialog">
+              <button class="btn btn-ghost btn-sm" type="submit">Close</button>
+            </form>
+          </div>
+          <pre class="code-modal__code">{{ cell.sub.code }}</pre>
+        </div>
+      </dialog>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-code-modal]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    const el = document.getElementById(btn.getAttribute('data-code-modal'));
+    if (el && typeof el.showModal === 'function') el.showModal();
+  });
+});
+document.querySelectorAll('dialog.code-modal').forEach(function (dlg) {
+  dlg.addEventListener('click', function (e) {
+    if (e.target === dlg) dlg.close();
+  });
+});
+</script>
+{% endblock %}

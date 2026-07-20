@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}LabGemma{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="site-nav__inner">
+      <a class="brand" href="{% if user and user.role == 'teacher' %}/teacher/{% elif user %}/lab/{% else %}/{% endif %}">Lab<em>Gemma</em></a>
+      <div class="nav-links">
+        {% if user %}
+          {% if user.role == 'teacher' %}
+            <a href="/teacher/">Sessions</a>
+          {% else %}
+            <a href="/lab/">Labs</a>
+            <a href="/learning/">Learning</a>
+          {% endif %}
+          <a href="/profile">Profile</a>
+          <span class="nav-meta">{{ user.name }}</span>
+          <form action="/logout" method="post" style="display:inline;margin:0">
+            <button class="btn btn-ghost btn-sm" type="submit">Logout</button>
+          </form>
+        {% else %}
+          <a href="/login">Login</a>
+          <a class="btn btn-primary btn-sm" href="/register">Get started</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  {% block body %}
+  <main class="{% block main_class %}page{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+  {% endblock %}
+
+  {% block footer %}
+  <footer class="site-footer">
+    Developed by <a href="https://abdnoman.com" target="_blank" rel="noopener noreferrer">Abdullah Al Noman</a>
+  </footer>
+  {% endblock %}
+
+  <div id="toast-host" class="toast-host" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script>
+  const swalBase = {
+    buttonsStyling: false,
+    customClass: {
+      popup: 'lab-swal',
+      confirmButton: 'btn btn-primary',
+      cancelButton: 'btn btn-ghost',
+      denyButton: 'btn btn-danger',
+    },
+  };
+
+  window.labAlert = async function (text, opts) {
+    const o = opts || {};
+    await Swal.fire({
+      ...swalBase,
+      icon: o.icon || 'info',
+      title: o.title || undefined,
+      text: text,
+      confirmButtonText: o.confirmText || 'OK',
+    });
+  };
+
+  window.labConfirm = async function (opts) {
+    const o = typeof opts === 'string' ? { text: opts } : (opts || {});
+    const result = await Swal.fire({
+      ...swalBase,
+      icon: o.icon || 'warning',
+      title: o.title || 'Are you sure?',
+      text: o.text || '',
+      showCancelButton: true,
+      focusCancel: true,
+      confirmButtonText: o.confirmText || 'Yes',
+      cancelButtonText: o.cancelText || 'Cancel',
+      reverseButtons: true,
+      customClass: {
+        ...swalBase.customClass,
+        confirmButton: o.danger ? 'btn btn-danger' : 'btn btn-primary',
+      },
+    });
+    return result.isConfirmed;
+  };
+
+  window.showToast = function (text, type) {
+    if (!text) return;
+    const host = document.getElementById('toast-host');
+    if (!host) return;
+    const el = document.createElement('div');
+    el.className = 'toast toast--' + (type === 'error' ? 'error' : 'ok');
+    el.textContent = text;
+    host.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('toast--in'));
+    setTimeout(() => {
+      el.classList.remove('toast--in');
+      el.classList.add('toast--out');
+      setTimeout(() => el.remove(), 280);
+    }, 3200);
+  };
+
+  window.bindLabTimers = function (onExpire) {
+    document.querySelectorAll('.exam-timer[data-ends]').forEach((el) => {
+      const ends = new Date(el.getAttribute('data-ends'));
+      if (Number.isNaN(ends.getTime())) return;
+      const tick = () => {
+        const ms = ends - Date.now();
+        if (ms <= 0) {
+          el.textContent = '00:00:00';
+          el.classList.add('exam-timer--ended');
+          if (typeof onExpire === 'function') onExpire(el);
+          return false;
+        }
+        const total = Math.floor(ms / 1000);
+        const h = String(Math.floor(total / 3600)).padStart(2, '0');
+        const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+        const s = String(total % 60).padStart(2, '0');
+        el.textContent = h + ':' + m + ':' + s;
+        if (ms < 5 * 60 * 1000) el.classList.add('exam-timer--urgent');
+        return true;
+      };
+      if (!tick()) return;
+      const id = setInterval(() => { if (!tick()) clearInterval(id); }, 1000);
+    });
+  };
+
+  document.addEventListener('submit', async (e) => {
+    const form = e.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (!form.hasAttribute('data-confirm') || form.dataset.confirmed === '1') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const ok = await labConfirm({
+      title: form.getAttribute('data-confirm-title') || 'Are you sure?',
+      text: form.getAttribute('data-confirm') || '',
+      confirmText: form.getAttribute('data-confirm-btn') || 'Yes, continue',
+      cancelText: form.getAttribute('data-cancel-btn') || 'Cancel',
+      danger: form.getAttribute('data-confirm-danger') !== '0',
+      icon: form.getAttribute('data-confirm-icon') || 'warning',
+    });
+    if (!ok) return;
+    form.dataset.confirmed = '1';
+    form.requestSubmit ? form.requestSubmit() : form.submit();
+  });
+
+  document.addEventListener('DOMContentLoaded', () => window.bindLabTimers(window.__labTimerOnExpire));
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

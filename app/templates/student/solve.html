@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}{{ problem.title }} · LabGemma{% endblock %}
+{% block main_class %}page page--flush{% endblock %}
+{% block footer %}{% endblock %}
+{% block head %}
+<style>
+  html, body { overflow: hidden !important; height: 100% !important; }
+  .site-footer { display: none; }
+  body { background: #fff !important; }
+  .site-nav { background: rgba(255,255,255,0.94); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exam-shell">
+  <header class="exam-top">
+    <div class="exam-top__main">
+      <h1>{{ problem.title }}</h1>
+      <div class="exam-meta">
+        <span>{{ problem.total_marks }} marks</span>
+        {% if ends_at_iso %}
+        <span class="exam-dot" aria-hidden="true"></span>
+        <span class="exam-timer exam-timer--meta" id="labTimer" data-ends="{{ ends_at_iso }}" title="Time remaining">--:--:--</span>
+        {% elif session.duration_minutes %}
+        <span class="exam-dot" aria-hidden="true"></span>
+        <span>{{ session.duration_minutes }} min</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="exam-top__actions">
+      <a class="back back--exam" href="/lab/{{ session.id }}/">Problems</a>
+    </div>
+  </header>
+
+  <div class="exam-split">
+    <aside class="exam-problem">
+      <section class="prob-block">
+        <h2 class="prob-label">Statement</h2>
+        <div class="prob-text">{{ problem.description }}</div>
+      </section>
+
+      {% if problem.input_format %}
+      <section class="prob-block">
+        <h2 class="prob-label">Input</h2>
+        <div class="prob-text muted">{{ problem.input_format }}</div>
+      </section>
+      {% endif %}
+
+      {% if problem.output_format %}
+      <section class="prob-block">
+        <h2 class="prob-label">Output</h2>
+        <div class="prob-text muted">{{ problem.output_format }}</div>
+      </section>
+      {% endif %}
+
+      {% if problem.constraints %}
+      <section class="prob-block">
+        <h2 class="prob-label">Constraints</h2>
+        <pre class="prob-pre">{{ problem.constraints }}</pre>
+      </section>
+      {% endif %}
+
+      <section class="prob-block">
+        <h2 class="prob-label">Example</h2>
+        <div class="sample-grid">
+          <div class="sample-box">
+            <div class="sample-box__label">Input</div>
+            <pre>{{ problem.sample_input }}</pre>
+          </div>
+          <div class="sample-box">
+            <div class="sample-box__label">Output</div>
+            <pre>{{ problem.sample_output }}</pre>
+          </div>
+        </div>
+      </section>
+
+      {% if final_submission %}
+      <section class="prob-done">
+        <strong>{% if final_submission.verdict == 'AC' %}Accepted{% else %}Submitted{% endif %}</strong>
+        <p>{{ final_submission.verdict }} · {{ final_submission.ai_total_marks }} / {{ problem.total_marks }}</p>
+        {% if final_submission.verdict == 'AC' %}
+        <a class="btn btn-ghost btn-sm" href="/lab/{{ session.id }}/">Back to problems</a>
+        {% else %}
+        <a class="btn btn-primary btn-sm" href="/lab/result/{{ final_submission.id }}/">AI grade</a>
+        {% endif %}
+      </section>
+      {% endif %}
+    </aside>
+
+    <section class="exam-editor">
+      <div class="exam-toolbar">
+        <div class="exam-toolbar__left">
+          <label class="sr-only" for="language">Language</label>
+          <select id="language" class="exam-lang">
+            <option value="python" {% if problem.language == 'python' %}selected{% endif %}>Python</option>
+            <option value="cpp" {% if problem.language == 'cpp' %}selected{% endif %}>C++</option>
+            <option value="c" {% if problem.language == 'c' %}selected{% endif %}>C</option>
+            <option value="java" {% if problem.language == 'java' %}selected{% endif %}>Java</option>
+          </select>
+        </div>
+        {% if can_edit %}
+        <div class="exam-toolbar__actions">
+          <button class="btn btn-ghost btn-sm" id="testBtn" type="button">Test</button>
+          <button class="btn btn-primary btn-sm" id="submitBtn" type="button">Submit</button>
+        </div>
+        {% elif final_submission %}
+        <span class="exam-locked">Already Submitted</span>
+        {% else %}
+        <span class="exam-locked">{% if session.status == 'draft' %}Upcoming{% else %}Closed{% endif %}</span>
+        {% endif %}
+      </div>
+      <div id="editorContainer"><div id="editor"></div></div>
+
+      <div id="resultPanel" class="exam-result" hidden>
+        <div class="exam-result__bar">
+          <strong>Result</strong>
+          <button type="button" class="exam-result__close" id="closeResult" aria-label="Close result">Close</button>
+        </div>
+        <div class="exam-result__body" id="resultContent"></div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+<script>
+const sessionId = {{ session.id }};
+const problemId = {{ problem.id }};
+const totalMarks = {{ problem.total_marks }};
+const existingCode = {{ existing_code_json }};
+const defaultCode = {
+  c: '#include <stdio.h>\n\nint main() {\n    \n    return 0;\n}\n',
+  cpp: '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    \n    return 0;\n}\n',
+  python: '# Write your solution here\n',
+  java: 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        \n    }\n}\n'
+};
+const initialLang = document.getElementById('language').value;
+let editor;
+require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
+require(['vs/editor/editor.main'], function () {
+  const monacoLang = initialLang === 'cpp' ? 'cpp' : initialLang === 'c' ? 'c' : initialLang === 'java' ? 'java' : 'python';
+  const canEdit = {% if can_edit %}true{% else %}false{% endif %};
+  editor = monaco.editor.create(document.getElementById('editor'), {
+    value: (existingCode !== null ? existingCode : defaultCode[initialLang]),
+    language: monacoLang,
+    theme: 'vs',
+    fontSize: 14,
+    fontFamily: 'IBM Plex Mono, ui-monospace, monospace',
+    minimap: { enabled: false },
+    automaticLayout: true,
+    scrollBeyondLastLine: false,
+    padding: { top: 12, bottom: 12 },
+    readOnly: !canEdit,
+    domReadOnly: !canEdit,
+  });
+  editor.layout();
+  if (canEdit) {
+    editor.updateOptions({ readOnly: false, domReadOnly: false });
+    editor.focus();
+  }
+  document.getElementById('language').addEventListener('change', function () {
+    const lang = this.value;
+    const ml = lang === 'cpp' ? 'cpp' : lang === 'c' ? 'c' : lang === 'java' ? 'java' : 'python';
+    monaco.editor.setModelLanguage(editor.getModel(), ml);
+    if (canEdit) editor.setValue(defaultCode[lang] || '');
+  });
+});
+
+window.__labTimerOnExpire = async (el) => {
+  if (el.id === 'labTimer') {
+    await labAlert('Lab time is over.', { icon: 'warning', title: 'Time up' });
+    window.location = `/lab/${sessionId}/`;
+  }
+};
+
+const panel = document.getElementById('resultPanel');
+const resultContent = document.getElementById('resultContent');
+document.getElementById('closeResult').onclick = () => {
+  panel.hidden = true;
+  if (editor) editor.layout();
+};
+
+const verdictMeta = {
+  AC:  { label: 'Accepted', cls: 'ok' },
+  WA:  { label: 'Wrong Answer', cls: 'bad' },
+  CE:  { label: 'Compilation Error', cls: 'warn' },
+  RE:  { label: 'Runtime Error', cls: 'warn' },
+  TLE: { label: 'Time Limit Exceeded', cls: 'warn' },
+  MLE: { label: 'Memory Limit Exceeded', cls: 'warn' },
+  AI:  { label: 'AI graded', cls: 'ok' },
+  SKIPPED: { label: 'Judge skipped', cls: 'muted' },
+};
+
+function openPanel(html) {
+  resultContent.innerHTML = html;
+  panel.hidden = false;
+  requestAnimationFrame(() => panel.classList.add('exam-result--open'));
+  if (editor) editor.layout();
+}
+
+function showResult(data, type) {
+  const v = data.verdict || 'UNKNOWN';
+  const meta = verdictMeta[v] || { label: v, cls: 'muted' };
+  const kind = type === 'test' ? 'Sample test' : 'Final submission';
+  let html = `<div class="exam-result__verdict exam-result__verdict--${meta.cls}">
+    <strong>${meta.label}</strong>
+    <span>${kind}</span>
+  </div>`;
+
+  if (data.total_test_cases > 0) {
+    const pct = Math.round((data.test_cases_passed / data.total_test_cases) * 100);
+    html += `<div class="exam-result__tests">
+      <p><strong>${data.test_cases_passed}</strong> / ${data.total_test_cases} test cases passed</p>
+      <div class="exam-result__bar-track"><div class="exam-result__bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+
+  if (data.error_message) {
+    html += `<pre class="exam-result__err">${String(data.error_message).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre>`;
+  }
+
+  if (type === 'submit') {
+    if (data.ai_total_marks !== null && data.ai_total_marks !== undefined) {
+      html += `<p class="exam-result__score">${data.ai_total_marks} / ${totalMarks}</p>`;
+    }
+    if (data.ai_graded || data.ai_pending) {
+      html += `<p class="muted" style="margin:0.55rem 0 0;font-size:0.86rem">Output is not fully correct. Starting AI partial grading…</p>`;
+    } else if (!data.ai_graded) {
+      html += `<p class="muted" style="margin:0.5rem 0 0;font-size:0.86rem">All tests passed — full marks from the engine. No AI grading needed.</p>
+        <a class="btn btn-ghost btn-sm" style="margin-top:0.65rem" href="${data.problems_url || '/lab/' + sessionId + '/'}">Back to problems</a>`;
+    }
+  }
+
+  openPanel(html);
+}
+
+{% if can_edit %}
+const testBtn = document.getElementById('testBtn');
+const submitBtn = document.getElementById('submitBtn');
+
+testBtn.onclick = async () => {
+  if (!editor) return labAlert('Editor still loading', { icon: 'info', title: 'Please wait' });
+  const code = editor.getValue().trim();
+  if (!code) return labAlert('Write some code first', { icon: 'info', title: 'Empty editor' });
+  testBtn.disabled = true;
+  openPanel('<p class="muted" style="margin:0">Running sample test…</p>');
+  try {
+    const res = await fetch(`/lab/${sessionId}/problem/${problemId}/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: editor.getValue(), language: document.getElementById('language').value }),
+    });
+    const data = await res.json();
+    showResult(data, 'test');
+  } catch (e) {
+    openPanel(`<p class="exam-result__verdict--bad" style="margin:0">${e.message || e}</p>`);
+  } finally {
+    testBtn.disabled = false;
+  }
+};
+
+submitBtn.onclick = async () => {
+  if (!editor) return labAlert('Editor still loading', { icon: 'info', title: 'Please wait' });
+  const code = editor.getValue().trim();
+  if (!code) return labAlert('Write some code first', { icon: 'info', title: 'Empty editor' });
+  const ok = await labConfirm({
+    title: 'Final submit?',
+    text: 'You cannot resubmit after this.',
+    confirmText: 'Yes, submit',
+    cancelText: 'Keep editing',
+    danger: true,
+  });
+  if (!ok) return;
+
+  submitBtn.disabled = true;
+  testBtn.disabled = true;
+  openPanel('<p class="muted" style="margin:0">Judging…</p>');
+
+  try {
+    const res = await fetch(`/lab/${sessionId}/problem/${problemId}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: editor.getValue(), language: document.getElementById('language').value }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      openPanel(`<p class="exam-result__verdict--bad" style="margin:0">${data.error || 'Submit failed'}</p>`);
+      submitBtn.disabled = false;
+      testBtn.disabled = false;
+      return;
+    }
+
+    // Wrong / partial → first show engine verdict, then go to AI grading
+    if ((data.ai_pending || data.ai_graded) && data.redirect_url) {
+      showResult(data, 'submit');
+      submitBtn.textContent = 'Submitted';
+      setTimeout(() => { window.location = data.redirect_url; }, 2200);
+      return;
+    }
+
+    // Engine AC — slide-up result only
+    showResult(data, 'submit');
+    submitBtn.textContent = 'Submitted';
+  } catch (e) {
+    openPanel(`<p class="exam-result__verdict--bad" style="margin:0">${e.message || e}</p>`);
+    submitBtn.disabled = false;
+    testBtn.disabled = false;
+  }
+};
+{% endif %}
+</script>
+{% endblock %}

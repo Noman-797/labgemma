@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Sessions · LabGemma{% endblock %}
+{% block content %}
+<div class="page-head page-head__row">
+  <div>
+    <h1>Lab sessions</h1>
+    <p>Create a session, add AI problems, approve, then activate for students.</p>
+  </div>
+  <a class="btn btn-primary" href="/teacher/sessions/create">New session</a>
+</div>
+
+{% if not sessions %}
+<div class="empty-state">
+  <h2>No sessions yet</h2>
+  <p>Create your first lab session, generate a problem with Gemma, review the rubric, then activate it for students.</p>
+  <a class="btn btn-primary" href="/teacher/sessions/create">Create session</a>
+</div>
+{% else %}
+<div class="section-label">
+  <span>{{ sessions|length }} session{% if sessions|length != 1 %}s{% endif %}</span>
+</div>
+<div class="session-grid">
+  {% for s in sessions %}
+  <article class="session-card">
+    <header class="session-card__head">
+      <h2>{{ s.title }}</h2>
+      <span class="badge {{ s.status }}">
+        {% if s.status == 'active' %}Live
+        {% elif s.status == 'closed' %}Past
+        {% else %}Upcoming{% endif %}
+      </span>
+    </header>
+    {% if s.description %}
+    <p class="session-card__desc">{{ s.description }}</p>
+    {% endif %}
+    <footer class="session-card__foot">
+      <a class="btn btn-primary btn-sm" href="/teacher/sessions/{{ s.id }}/problems">Problems</a>
+      <a class="btn btn-ghost btn-sm" href="/teacher/sessions/{{ s.id }}/submissions">Submissions</a>
+      <form method="post" action="/teacher/sessions/{{ s.id }}/delete"
+            data-confirm-title="Delete this session?"
+            data-confirm="Problems and submissions will be removed. This cannot be undone."
+            data-confirm-btn="Yes, delete">
+        <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+      </form>
+    </footer>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

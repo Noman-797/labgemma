@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Result · {{ problem.title }}{% endblock %}
+{% block content %}
+<div class="result-page">
+  <a class="back" href="/lab/{{ session.id }}/">Back to Problems</a>
+
+  {% if ai_pending %}
+  <div class="verdict-banner verdict-banner--pending" id="gradeWait">
+    <h1>
+      <span class="grade-spinner grade-spinner--inline" aria-hidden="true"></span>
+      Scoring your code…
+    </h1>
+    <p>
+      Engine {{ submission.verdict }}
+      {% if submission.total_test_cases %}
+      · {{ submission.test_cases_passed }} / {{ submission.total_test_cases }} tests
+      {% endif %}
+      · Gemma is scoring against the rubric
+    </p>
+  </div>
+  {% else %}
+
+  {% set v = submission.verdict or 'WA' %}
+  <div class="verdict-banner
+    {% if v == 'AC' %}verdict-banner--ac
+    {% elif v == 'CE' %}verdict-banner--ce
+    {% elif v == 'TLE' %}verdict-banner--tle
+    {% elif v == 'MLE' %}verdict-banner--mle
+    {% else %}verdict-banner--wa{% endif %}">
+    <div class="verdict-banner__main">
+      <p class="verdict-banner__problem">{{ problem.title }}</p>
+      <h1>
+        {% if v == 'AC' %}Accepted
+        {% elif v == 'WA' %}Wrong Answer
+        {% elif v == 'CE' %}Compilation Error
+        {% elif v == 'RE' %}Runtime Error
+        {% elif v == 'TLE' %}Time Limit Exceeded
+        {% elif v == 'MLE' %}Memory Limit Exceeded
+        {% else %}{{ v }}{% endif %}
+      </h1>
+      <p class="verdict-banner__meta">
+        Test Cases: {{ submission.test_cases_passed }} / {{ submission.total_test_cases }} passed
+        {% if submission.execution_time is not none %}
+        · {{ '%.3f'|format(submission.execution_time) }}s
+        {% endif %}
+      </p>
+    </div>
+    <div class="verdict-banner__score">
+      {% if submission.ai_total_marks is not none %}
+      <span class="verdict-banner__score-label">AI Score</span>
+      <strong>{{ submission.ai_total_marks }}</strong>
+      <span class="verdict-banner__score-max">/ {{ problem.total_marks }}</span>
+      {% elif v == 'AC' %}
+      <span class="verdict-banner__score-label">Result</span>
+      <strong class="verdict-banner__score-text">Full Marks</strong>
+      <span class="verdict-banner__score-max">All tests passed</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if submission.compilation_error %}
+  <div class="result-alert result-alert--ce">
+    <h3>Compilation Error</h3>
+    <pre>{{ submission.compilation_error }}</pre>
+  </div>
+  {% endif %}
+
+  {% if submission.runtime_error and not submission.compilation_error %}
+  <div class="result-alert result-alert--re">
+    <h3>Runtime Error</h3>
+    <pre>{{ submission.runtime_error }}</pre>
+  </div>
+  {% endif %}
+
+  {% if feedback %}
+  <section class="result-card">
+    <h2>AI Evaluation</h2>
+    <div class="result-criteria">
+      {% for c in feedback %}
+      {% set maxm = c.max_marks if c.max_marks is defined else 0 %}
+      {% set awarded = c.marks_awarded if c.marks_awarded is defined else 0 %}
+      {% set pct = ((awarded / maxm * 100) if maxm else 0) %}
+      <article class="result-criterion">
+        <div class="result-criterion__top">
+          <strong>{{ c.criterion }}</strong>
+          <div class="result-criterion__marks">
+            <div class="result-bar" aria-hidden="true">
+              <span style="width: {{ [pct, 100]|min }}%"></span>
+            </div>
+            <span class="result-criterion__score">{{ awarded }} / {{ maxm }}</span>
+          </div>
+        </div>
+        {% if c.explanation %}
+        <p>{{ c.explanation }}</p>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% if submission.ai_total_marks is not none %}
+    <div class="result-total">
+      <span>Total AI Score</span>
+      <strong>{{ submission.ai_total_marks }} / {{ problem.total_marks }}</strong>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if submission.ai_summary %}
+  <section class="result-summary">
+    <h3>AI Feedback</h3>
+    <p>{{ submission.ai_summary }}</p>
+  </section>
+  {% endif %}
+
+  <section class="result-card">
+    <h3 class="result-code-head">
+      Your Code
+      <span class="badge">{{ submission.language }}</span>
+    </h3>
+    <pre class="result-code">{{ submission.code }}</pre>
+  </section>
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if ai_pending %}
+<script>
+const statusUrl = '/lab/result/{{ submission.id }}/status';
+async function poll() {
+  try {
+    const res = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+    const data = await res.json();
+    if (data.status === 'done' || data.status === 'failed') {
+      window.location.reload();
+      return;
+    }
+  } catch (e) {}
+  setTimeout(poll, 1200);
+}
+setTimeout(poll, 800);
+</script>
+{% endif %}
+{% endblock %}
