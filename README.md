@@ -1,78 +1,145 @@
 # LabGemma
 
-**A Concern of Semicolons** — AI-assisted programming lab with personalized learning.
+**A Concern of Semicolons** · AI-assisted programming lab with personalized learning
 
-**Teachers generate lab problems & rubrics with Gemma; students submit code; a small Gemma agent pipeline marks with partial credit and verifies scores to reduce hallucination.**
+[![Live Demo](https://img.shields.io/badge/Live_Demo-labgemma.onrender.com-0f766e?style=for-the-badge)](https://labgemma.onrender.com/)
+[![Gemma 4](https://img.shields.io/badge/LLM-Gemma_4_only-4285F4?style=for-the-badge)](https://ollama.com/library/gemma4)
+[![License](https://img.shields.io/badge/License-MIT-gray?style=for-the-badge)](LICENSE)
 
-Hackathon prototype of the **Semicolons lab evaluation flow**, rebuilt with **FastAPI** and **Gemma-only** LLM calls (no Groq / other LLMs).
+Teachers build labs with **Gemma 4**. Students code in a real editor. A rule-based judge runs first. When tests fail, Gemma awards **fair partial credit** against a **teacher-approved, question-specific rubric**. After labs, Gemma generates **personalized practice** from each student’s weak areas.
 
-## Why
+> Live: [https://labgemma.onrender.com](https://labgemma.onrender.com/)  
+> Inspired by [Rubric Is All You Need](https://arxiv.org/abs/2503.23989) (ICER 2025)
 
-University lab exams need partial credit, not only AC/WA. Manual rubric marking is slow. A single LLM call can hallucinate scores — LabGemma uses a short agent pipeline (Scorer → Evidence → Consistency) to reduce that risk.
+---
 
-## Flow (same as Semicolons labs)
+## The problem
 
-```mermaid
-flowchart LR
-  T[Teacher prompt] --> G[Agent1 Generator]
-  G --> R[Agent2 Rubric]
-  R --> REV[Teacher review / approve]
-  REV --> S[Student solve]
-  S --> J[Lightweight judge]
-  J -->|AC all| FULL[Full marks]
-  J -->|else| A3[Agent3 Scorer]
-  A3 --> A4[Agent4 Evidence]
-  A4 --> A5[Agent5 Consistency]
-  A5 --> RES[Result + verification notes]
+University programming labs still depend on heavy manual work and strict pass/fail judging:
+
+- Teachers spend hours writing problems, test cases, and grading by hand
+- Online judges often give **CE / WA / RE → zero**, even when the code shows partial understanding
+- Blind AI grading without execution or an approved rubric is inconsistent
+- After marks, students rarely get practice targeted at their mistakes
+
+## What LabGemma does
+
+| Step | What happens |
+|------|----------------|
+| 1. Generate | Teacher prompt → Gemma builds problem, hidden tests, and rubric |
+| 2. Approve | Teacher reviews and publishes |
+| 3. Solve | Students code in **C, C++, Python, or Java** |
+| 4. Judge first | Engine runs hidden tests — **AC → full marks instantly** |
+| 5. Rubric AI | CE / WA / RE / partial → Gemma scores with consistency check |
+| 6. Teacher control | Override any AI mark — instructor always decides |
+| 7. Personalized learning | Gemma analyzes history and creates in-app practice problems |
+
+**Gemma 4 is the only LLM.** Traditional tools (SQLite, compilers, HTTP) support the app; they do not replace Gemma.
+
+### Where Gemma is used
+
+1. Lab problem + test case generation  
+2. Question-specific rubric generation  
+3. Rubric-based partial scoring (scorer)  
+4. Consistency / verification pass  
+5. Learning analysis + personalized practice generation  
+
+---
+
+## Architecture
+
+```text
+Teacher prompt
+    → Gemma (problem + rubric pack)
+    → Teacher approve
+    → Student submit
+    → Lightweight judge (Python / C / C++ / Java)
+         ├─ AC  → full marks
+         └─ else → Gemma scorer → Gemma consistency → teacher override
+    → Personalized learning (Gemma)
 ```
 
-1. Teacher creates **Lab Session**
-2. **Add Problem**: `ai_prompt`, language, difficulty, `rubric_prompt`, `total_marks`
-3. Gemma **Agent1** generates problem + samples + test cases
-4. Gemma **Agent2** generates rubric (marks sum = total)
-5. Teacher **review / edit / approve** (`rubric_approved`)
-6. Activate session → students see approved problems
-7. Student **Test** (sample) / **Final submit** (once)
-8. Lightweight judge; full AC → full marks; else AI partial + evidence + verify
-9. Teacher can view submissions / override marks
+**Stack:** FastAPI · Jinja2 · SQLite · SQLAlchemy 2 · httpx (Ollama Cloud / OpenAI-compatible Gemma API) · Docker
 
-## Out of scope (intentionally)
+---
 
-Per-submission Docker sandbox, Celery/Redis, WebSockets, contests, department admin portal.
+## Live demo accounts
 
-## Stack
+| Role | Email | Password |
+|------|-------|----------|
+| Teacher | `teacher@demo.com` | `teacher123` |
+| Student | `abdnoman093@gmail.com` | `student123` |
+| Student | `student2@demo.com` | `student123` |
 
-- FastAPI + Jinja2 + SQLite
-- SQLAlchemy 2
-- Gemma 4 via OpenAI-compatible HTTP API (`httpx`) — Ollama Cloud by default
-- Lightweight judge: Python / C / C++ / Java (`gcc`, `g++`, `javac` in Docker image)
-- `MOCK_GEMMA=1` for offline demo
+**5-minute walkthrough**
+
+1. Teacher → New session → Add problem (AI) → Approve → Activate  
+2. Student (correct code) → Final submit → expect **AC / full marks**  
+3. Student (weak code) → Final submit → **AI partial marks** + notes  
+4. Learning → Analyze → practice problems in LabGemma  
+
+> Free hosting may cold-start (~30–60s on first hit). Uptime monitoring keeps the demo warm.
+
+---
 
 ## Quick start (Docker — recommended)
 
 ```bash
-cd ~/Downloads/labgemma
+git clone https://github.com/Noman-797/labgemma.git
+cd labgemma
 cp .env.example .env
-# Add GEMMA_API_KEY (or set MOCK_GEMMA=1)
+# set GEMMA_API_KEY, or MOCK_GEMMA=1 for offline demo
 
 docker compose up --build -d
 ```
 
-Open http://127.0.0.1:8000
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
-- App image includes Python + `gcc` / `g++` / JDK for judging
-- SQLite data persists in Docker volume `labgemma_data`
-- Demo accounts are seeded when `SEED_DEMO=1` (default)
-
-Useful commands:
+- Image includes `python3`, `gcc`, `g++`, and JDK for judging  
+- SQLite persists in volume `labgemma_data`  
+- `SEED_DEMO=1` creates the demo accounts on start  
 
 ```bash
-docker compose logs -f          # logs
-docker compose down             # stop
-docker compose up --build -d    # rebuild after code changes
+docker compose logs -f
+docker compose down
 ```
 
-Deploy anywhere that runs Docker (Render, Railway, Fly.io, AWS EC2, VPS):
+### Environment
+
+```env
+SECRET_KEY=change-me
+DATABASE_URL=sqlite:////data/labgemma.db
+GEMMA_API_KEY=your_ollama_or_provider_key
+GEMMA_API_BASE_URL=https://ollama.com/v1
+GEMMA_MODEL=gemma4:31b-cloud
+MOCK_GEMMA=0
+SEED_DEMO=1
+```
+
+See `.env.example` for all options. Client: `app/services/gemma_client.py`.
+
+---
+
+## Local setup (without Docker)
+
+Needs Python 3.11+ and, for non-Python labs, `gcc` / `g++` / `javac`.
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python scripts/seed_demo.py
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+---
+
+## Deploy
+
+This repo is Docker-ready. Deployed example: **[labgemma.onrender.com](https://labgemma.onrender.com/)**.
+
+Any Docker host works (Render, Railway, Fly.io, AWS EC2, VPS):
 
 ```bash
 docker build -t labgemma .
@@ -81,58 +148,35 @@ docker run -d --name labgemma -p 8000:8000 --env-file .env \
   -v labgemma_data:/data labgemma
 ```
 
-Point `labgemma.abdnoman.com` at the host (A/CNAME), then put nginx/Caddy or the platform’s HTTPS in front of port 8000.
+---
 
-## Setup (local, without Docker)
+## Project layout
 
-```bash
-cd ~/Downloads/labgemma
-source venv/bin/activate   # already created if you used the scaffold
-# or: python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
-
-cp .env.example .env
-# MOCK_GEMMA=1 for demo without a key
-python scripts/seed_demo.py
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```text
+app/
+  main.py              # FastAPI entry
+  routers/             # auth, teacher, student, learning
+  services/
+    gemma_client.py    # Gemma-only LLM client
+    grade_pipeline.py  # judge + AI partial credit
+    learning.py        # personalized practice
+    lightweight_judge.py
+  templates/           # UI
+scripts/seed_demo.py
+Dockerfile
+docker-compose.yml
 ```
 
-Open http://127.0.0.1:8000
+---
 
-### Demo accounts
+## Limitations
 
-| Email | Password | Role |
-|-------|----------|------|
-| teacher@demo.com | teacher123 | teacher |
-| abdnoman093@gmail.com | student123 | student |
-| student2@demo.com | student123 | student |
+- Prototype for education / hackathon demos — not a full proctoring platform  
+- Student code runs in temporary dirs inside the app container (not a hardened per-submission sandbox)  
+- Free PaaS disks can reset on redeploy; re-seed with `SEED_DEMO=1`  
 
-### Demo script (5 min)
-
-1. Login as teacher → **New session** → **Add problem (AI)**
-2. Prompt e.g. *Read n and an array, print the sum* → Review → **Approve**
-3. **Activate for students**
-4. Login student1 → solve with correct Python → Final submit
-5. Login student2 → incomplete code → lower partial marks + evidence + verification notes
-
-## Gemma API
-
-Set in `.env`:
-
-```
-MOCK_GEMMA=0
-GEMMA_API_KEY=your_key
-GEMMA_API_BASE_URL=https://ollama.com/v1
-GEMMA_MODEL=gemma4:31b-cloud
-```
-
-Client: `app/services/gemma_client.py` — adjust URL/headers if your provider differs.
-
-## Honest limitations
-
-- AI rubric grading prototype; not production proctoring
-- Student code runs in the app container (temp dirs), not a hardened per-submission sandbox
-- Free PaaS cold starts may delay the first request
+---
 
 ## License
 
-MIT — hackathon prototype.
+MIT · Built by [Abdullah Al Noman](https://abdnoman.com) · A Concern of Semicolons
