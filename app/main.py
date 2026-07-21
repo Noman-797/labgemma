@@ -69,6 +69,6 @@ def motivation(request: Request, db: Session = Depends(get_db)):
     return render(request, "motivation.html", {"user": user})
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     return {"ok": True, "mock_gemma": settings.mock_gemma}
