@@ -1,6 +1,8 @@
-# LabGemma
+<h1 align="center">LabGemma</h1>
 
-> **AI Assisted Programming Lab Evaluation and Personalized Learning Platform Powered by Gemma 4**
+<p align="center">
+  <strong>AI Assisted Programming Lab Evaluation and Personalized Learning Platform Powered by Gemma 4</strong>
+</p>
 
 <p align="center">
   <strong>Making programming lab assessment fair, explainable, and personalized.</strong>
@@ -8,8 +10,9 @@
 
 <p align="center">
   <a href="https://labgemma.onrender.com/"><img src="https://img.shields.io/badge/Live_Demo-labgemma.onrender.com-0f766e?style=for-the-badge" alt="Live Demo"></a>
+  <a href="https://youtu.be/c0eE0mIEzUg"><img src="https://img.shields.io/badge/Workflow_Video-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Workflow Video"></a>
+  <a href="https://arxiv.org/abs/2503.23989"><img src="https://img.shields.io/badge/Research-Rubric_Is_All_You_Need-b31b1b?style=for-the-badge" alt="Research Inspiration"></a>
   <a href="https://ollama.com/library/gemma4"><img src="https://img.shields.io/badge/LLM-Gemma_4_only-4285F4?style=for-the-badge" alt="Gemma 4"></a>
-  <img src="https://img.shields.io/badge/License-MIT-gray?style=for-the-badge" alt="License">
 </p>
 
 <p align="center">
@@ -19,9 +22,6 @@
   <a href="#getting-started">Installation</a> ·
   <a href="#future-work">Future Work</a>
 </p>
-
-**Live demo:** [https://labgemma.onrender.com](https://labgemma.onrender.com/)  
-**Research inspiration:** [Rubric Is All You Need](https://arxiv.org/abs/2503.23989) (ICER 2025)
 
 ---
 
@@ -85,42 +85,9 @@ LabGemma bridges this gap by integrating **Gemma 4** into the assessment workflo
 
 ## System Workflow
 
-```text
-Teacher Prompt
-      |
-      v
-Gemma 4
-      |
-      |----> Programming Problem
-      |----> Hidden Test Cases
-      |----> Grading Rubric
-                    |
-                    v
-             Teacher Review
-                    |
-                    v
-              Publish Lab
-                    |
-                    v
-           Student Submission
-                    |
-                    v
-          Rule Based Judge Engine
-                    |
-        +-----------+------------+
-        |                        |
-        v                        v
-   Accepted                 Needs Review
-        |                        |
-        v                        v
-    Full Marks            Gemma 4 Evaluation
-                                 |
-                                 v
-                   Partial Credit + Feedback
-                                 |
-                                 v
-                Personalized Learning Practice
-```
+<p align="center">
+  <img src="docs/system-workflow.png" alt="LabGemma System Workflow" width="900">
+</p>
 
 ---
 
@@ -243,7 +210,8 @@ See `.env.example` for all options.
 
 ## Live Demo
 
-**Application:** [https://labgemma.onrender.com](https://labgemma.onrender.com/)
+**Application:** [https://labgemma.onrender.com](https://labgemma.onrender.com/)  
+**Workflow video:** [https://youtu.be/c0eE0mIEzUg](https://youtu.be/c0eE0mIEzUg)
 
 > Free hosting may cold start on the first request. Health check: `/health`
 
@@ -320,18 +288,12 @@ LabGemma was developed as an AI powered educational platform inspired by researc
 
 ---
 
-## Author
-
-**Abdullah Al Noman**
-
-Computer Science and Engineering  
-Daffodil International University  
-A Concern of Semicolons
-
-GitHub: [https://github.com/Noman-797](https://github.com/Noman-797)
-
----
+<h2 align="center">Author</h2>
 
 <p align="center">
-Built with <strong>FastAPI</strong> and <strong>Gemma 4</strong> to improve programming education.
+  <strong>Abdullah Al Noman</strong><br><br>
+  Computer Science and Engineering<br>
+  Daffodil International University<br>
+  A Concern of Semicolons<br><br>
+  Portfolio: <a href="https://abdnoman.com">abdnoman.com</a>
 </p>
